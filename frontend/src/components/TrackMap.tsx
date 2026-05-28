@@ -1,11 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { allLocales } from '../locales';
 
 interface TrackMapProps {
   posX: number;
   posZ: number;
   yaw: number; // yaw rotation in radians/degrees
   isRaceOn: number;
+  lang: string;
 }
+
+
 
 interface Point {
   x: number;
@@ -17,7 +21,9 @@ export const TrackMap: React.FC<TrackMapProps> = ({
   posZ = 0,
   yaw = 0,
   isRaceOn = 0,
+  lang = 'en',
 }) => {
+  const t = allLocales[lang]?.map || allLocales['en'].map;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [path, setPath] = useState<Point[]>([]);
 
@@ -75,7 +81,7 @@ export const TrackMap: React.FC<TrackMapProps> = ({
       ctx.font = '13px var(--font-display)';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('WAITING FOR TELEMETRY DATA...', width / 2, height / 2);
+      ctx.fillText(t.waiting, width / 2, height / 2);
       
       // Draw a small dot at current center position for preview
       return;
@@ -204,9 +210,9 @@ export const TrackMap: React.FC<TrackMapProps> = ({
   return (
     <div style={styles.container} className="glass-panel">
       <div style={styles.header}>
-        <h3 style={styles.title}>LIVE TRACK MAP</h3>
+        <h3 style={styles.title}>{t.title}</h3>
         <button onClick={handleClear} style={styles.clearBtn} className="text-mono">
-          CLEAR PATH
+          {t.clearPath}
         </button>
       </div>
       
@@ -216,7 +222,7 @@ export const TrackMap: React.FC<TrackMapProps> = ({
       
       <div style={styles.footer} className="text-mono">
         <div>
-          POINTS RECORDED: <span className="text-neon-cyan">{path.length}</span>
+          {t.pointsRecorded} <span className="text-neon-cyan">{path.length}</span>
         </div>
         <div>
           X: <span className="text-neon-pink">{posX.toFixed(1)}</span> Z:{' '}

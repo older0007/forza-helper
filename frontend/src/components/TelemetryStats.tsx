@@ -1,4 +1,5 @@
 import React from 'react';
+import { allLocales } from '../locales';
 
 interface TelemetryStatsProps {
   power: number; // Watts
@@ -16,7 +17,10 @@ interface TelemetryStatsProps {
   carPerformanceIndex: number; // 100-999
   drivetrainType: number; // 0 = FWD, 1 = RWD, 2 = AWD
   useMetric: boolean;
+  lang: string;
 }
+
+
 
 export const TelemetryStats: React.FC<TelemetryStatsProps> = ({
   power = 0,
@@ -34,7 +38,9 @@ export const TelemetryStats: React.FC<TelemetryStatsProps> = ({
   carPerformanceIndex = 0,
   drivetrainType = 2,
   useMetric = true,
+  lang = 'en',
 }) => {
+  const t = allLocales[lang]?.stats || allLocales['en'].stats;
 
   // Conversions clamped to minimum of 0
   // Watts to Horsepower: 1 HP = 745.7 W
@@ -110,19 +116,19 @@ export const TelemetryStats: React.FC<TelemetryStatsProps> = ({
           </div>
         </div>
         <div style={styles.bannerStat}>
-          <div style={styles.bannerLabel}>DRIVETRAIN</div>
+          <div style={styles.bannerLabel}>{t.drivetrain}</div>
           <div style={styles.bannerValue} className="text-neon-cyan text-mono">
             {getDrivetrain(drivetrainType)}
           </div>
         </div>
         <div style={styles.bannerStat}>
-          <div style={styles.bannerLabel}>DISTANCE</div>
+          <div style={styles.bannerLabel}>{t.distance}</div>
           <div style={styles.bannerValue} className="text-mono">
             {displayDistance}
           </div>
         </div>
         <div style={styles.bannerStat}>
-          <div style={styles.bannerLabel}>FUEL LEVEL</div>
+          <div style={styles.bannerLabel}>{t.fuelLevel}</div>
           <div style={styles.bannerValue} className="text-neon-green text-mono">
             {Math.round(fuel * 100)}%
           </div>
@@ -133,18 +139,18 @@ export const TelemetryStats: React.FC<TelemetryStatsProps> = ({
       <div style={styles.statsGrid}>
         {/* Engine Card */}
         <div style={styles.card} className="glass-panel">
-          <h4 style={styles.cardTitle}>ENGINE METRICS</h4>
+          <h4 style={styles.cardTitle}>{t.engineMetrics}</h4>
           <div style={styles.cardContent}>
             <div style={styles.statRow}>
-              <span style={styles.statLabel}>HORSEPOWER</span>
+              <span style={styles.statLabel}>{t.horsepower}</span>
               <span style={styles.statVal} className="text-neon-pink text-mono">{hp} <span style={styles.unit}>HP</span></span>
             </div>
             <div style={styles.statRow}>
-              <span style={styles.statLabel}>TORQUE</span>
+              <span style={styles.statLabel}>{t.torque}</span>
               <span style={styles.statVal} className="text-mono">{displayTorque} <span style={styles.unit}>{torqueUnit}</span></span>
             </div>
             <div style={styles.statRow}>
-              <span style={styles.statLabel}>BOOST PRESSURE</span>
+              <span style={styles.statLabel}>{t.boostPressure}</span>
               <span style={styles.statVal} className="text-neon-cyan text-mono">{displayBoost.toFixed(1)} <span style={styles.unit}>PSI</span></span>
             </div>
           </div>
@@ -152,30 +158,30 @@ export const TelemetryStats: React.FC<TelemetryStatsProps> = ({
 
         {/* Lap Times Card */}
         <div style={styles.card} className="glass-panel">
-          <h4 style={styles.cardTitle}>TIMING & POSITION</h4>
+          <h4 style={styles.cardTitle}>{t.timingPosition}</h4>
           <div style={styles.cardContent}>
             <div style={styles.statRow}>
-              <span style={styles.statLabel}>RACE POSITION</span>
+              <span style={styles.statLabel}>{t.racePosition}</span>
               <span style={styles.statVal} className="text-neon-green text-mono">#{racePosition || 1}</span>
             </div>
             <div style={styles.statRow}>
-              <span style={styles.statLabel}>CURRENT LAP</span>
+              <span style={styles.statLabel}>{t.currentLap}</span>
               <span style={styles.statVal} className="text-mono">#{lapNumber}</span>
             </div>
             <div style={styles.statRow}>
-              <span style={styles.statLabel}>CURRENT LAP TIME</span>
+              <span style={styles.statLabel}>{t.currentLapTime}</span>
               <span style={styles.statVal} className="text-mono">{formatTime(currentLap)}</span>
             </div>
             <div style={styles.statRow}>
-              <span style={styles.statLabel}>TOTAL RACE TIME</span>
+              <span style={styles.statLabel}>{t.totalRaceTime}</span>
               <span style={styles.statVal} className="text-mono">{formatTime(currentRaceTime)}</span>
             </div>
             <div style={styles.statRow}>
-              <span style={styles.statLabel}>LAST LAP TIME</span>
+              <span style={styles.statLabel}>{t.lastLapTime}</span>
               <span style={styles.statVal} className="text-mono">{formatTime(lastLap)}</span>
             </div>
             <div style={styles.statRow}>
-              <span style={styles.statLabel}>BEST LAP TIME</span>
+              <span style={styles.statLabel}>{t.bestLapTime}</span>
               <span style={styles.statVal} className="text-neon-cyan text-mono">{formatTime(bestLap)}</span>
             </div>
           </div>

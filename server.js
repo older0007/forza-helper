@@ -74,7 +74,9 @@ let triggerSettings = {
   
   enableGearShift: true,
   gearShiftDurationMs: 120,
-  gearShiftStrength: 0.8
+  gearShiftStrength: 0.8,
+  
+  r2Mode: 'full'
 };
 
 try {
@@ -187,8 +189,18 @@ const updateDualSenseTriggers = (ds, telemetry) => {
   let targetR2Effect = 'none';
   let targetR2Params = null;
 
+  const mode = triggerSettings.r2Mode || 'full';
+  const maxRpm = telemetry.EngineMaxRpm;
+  const currentRpm = telemetry.CurrentEngineRpm;
+  const rpmRatio = maxRpm > 0 ? (currentRpm / maxRpm) : 0;
+  const isRevLimitTriggered = triggerSettings.enableRevLimiter && accelInput > 15 && rpmRatio >= triggerSettings.revLimitRatio;
+  const isTractionLost = accelInput > 15 && (
+    telemetry.TireCombinedSlipRearLeft > 0.70 || 
+    telemetry.TireCombinedSlipRearRight > 0.70
+  );
+
   if (isShiftThumpActive && accelInput > 15) {
-    // Gear shift thump on accelerator trigger if accelerating
+    // Gear shift thump on accelerator trigger if accelerating (if enableGearShift is true)
     targetR2Effect = 'vibration';
     targetR2Params = {
       effect: TriggerEffect.Vibration,
@@ -196,52 +208,36 @@ const updateDualSenseTriggers = (ds, telemetry) => {
       amplitude: triggerSettings.gearShiftStrength,
       frequency: 10
     };
+  } else if (mode === 'full' && isRevLimitTriggered) {
+    // Rev limiter vibration (Full Dynamic mode only)
+    targetR2Effect = 'vibration';
+    targetR2Params = {
+      effect: TriggerEffect.Vibration,
+      position: 0.1,
+      amplitude: 0.7 * triggerSettings.tcStrength,
+      frequency: triggerSettings.revLimitFreq
+    };
+  } else if ((mode === 'full' || mode === 'traction') && isTractionLost) {
+    // Traction loss: trigger vibrates rapidly to simulate wheelspin / tire chatter (Full or Traction mode)
+    targetR2Effect = 'vibration';
+    targetR2Params = {
+      effect: TriggerEffect.Vibration,
+      position: 0.1,
+      amplitude: 0.6 * triggerSettings.tcStrength,
+      frequency: 14 // 14Hz slip chatter
+    };
+  } else if (accelInput > 10) {
+    // Normal accelerator tension - continuous light resistance simulating pedal weight
+    targetR2Effect = 'feedback';
+    const strength = Math.min(1.0, Math.max(0.0, 0.4 * triggerSettings.resistanceStrength));
+    targetR2Params = {
+      effect: TriggerEffect.Feedback,
+      position: 0.1,
+      strength: strength
+    };
   } else {
-    // Check Rev Limiter
-    const maxRpm = telemetry.EngineMaxRpm;
-    const currentRpm = telemetry.CurrentEngineRpm;
-    const rpmRatio = maxRpm > 0 ? (currentRpm / maxRpm) : 0;
-    const isRevLimitTriggered = triggerSettings.enableRevLimiter && accelInput > 15 && rpmRatio >= triggerSettings.revLimitRatio;
-
-    if (isRevLimitTriggered) {
-      // Rev limiter vibration
-      targetR2Effect = 'vibration';
-      targetR2Params = {
-        effect: TriggerEffect.Vibration,
-        position: 0.1,
-        amplitude: 0.7 * triggerSettings.tcStrength,
-        frequency: triggerSettings.revLimitFreq
-      };
-    } else {
-      // Traction Control Check
-      const isTractionLost = accelInput > 15 && (
-        telemetry.TireCombinedSlipRearLeft > 0.70 || 
-        telemetry.TireCombinedSlipRearRight > 0.70
-      );
-
-      if (isTractionLost) {
-        // Traction loss: trigger vibrates rapidly to simulate wheelspin / tire chatter
-        targetR2Effect = 'vibration';
-        targetR2Params = {
-          effect: TriggerEffect.Vibration,
-          position: 0.1,
-          amplitude: 0.6 * triggerSettings.tcStrength,
-          frequency: 14 // 14Hz slip chatter
-        };
-      } else if (accelInput > 10) {
-        // Normal accelerator tension - continuous light resistance simulating pedal weight
-        targetR2Effect = 'feedback';
-        const strength = Math.min(1.0, Math.max(0.0, 0.4 * triggerSettings.resistanceStrength));
-        targetR2Params = {
-          effect: TriggerEffect.Feedback,
-          position: 0.1,
-          strength: strength
-        };
-      } else {
-        // Idle - zero resistance
-        targetR2Effect = 'off';
-      }
-    }
+    // Idle - zero resistance
+    targetR2Effect = 'off';
   }
 
   // Apply R2 effect if changed
@@ -426,7 +422,9 @@ wss.on('connection', (ws) => {
           
           enableGearShift: typeof parsed.data.enableGearShift === 'boolean' ? parsed.data.enableGearShift : true,
           gearShiftDurationMs: typeof parsed.data.gearShiftDurationMs === 'number' ? parsed.data.gearShiftDurationMs : 120,
-          gearShiftStrength: typeof parsed.data.gearShiftStrength === 'number' ? parsed.data.gearShiftStrength : 0.8
+          gearShiftStrength: typeof parsed.data.gearShiftStrength === 'number' ? parsed.data.gearShiftStrength : 0.8,
+          
+          r2Mode: typeof parsed.data.r2Mode === 'string' ? parsed.data.r2Mode : 'full'
         };
         console.log('[DualSense] Settings updated:', triggerSettings);
         // Reset effects cache to force immediate settings application

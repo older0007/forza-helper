@@ -1,18 +1,24 @@
 import React from 'react';
+import { allLocales } from '../locales';
 
 interface GripMonitorProps {
   slipFL: number;
   slipFR: number;
   slipRL: number;
   slipRR: number;
+  lang: string;
 }
+
+
 
 export const GripMonitor: React.FC<GripMonitorProps> = ({
   slipFL = 0,
   slipFR = 0,
   slipRL = 0,
   slipRR = 0,
+  lang = 'en',
 }) => {
+  const t = allLocales[lang]?.grip || allLocales['en'].grip;
   // Calculate Front and Rear Slip averages
   // Combined slip is normally 0 (rolling) to ~1.0 (limit of traction), and >1.0 when sliding/spinning.
   // Scale to percentage, capped at 100%.
@@ -28,13 +34,13 @@ export const GripMonitor: React.FC<GripMonitorProps> = ({
   const gripPct = Math.max(0, Math.min(100, Math.round(100 - (avgSlip * 80))));
 
   // Get grip status text and colors
-  let statusText = 'GOOD';
+  let statusText = t.statusPerfect;
   let statusColor = '#39ff14'; // Neon Green
   if (gripPct < 40) {
-    statusText = 'LOSS OF GRIP';
+    statusText = t.statusNoControl;
     statusColor = 'var(--accent-pink)'; // Neon Pink
   } else if (gripPct < 85) {
-    statusText = 'SLIPPING';
+    statusText = t.statusSlipping;
     statusColor = 'var(--accent-orange)'; // Neon Orange
   }
 
@@ -57,8 +63,8 @@ export const GripMonitor: React.FC<GripMonitorProps> = ({
       {/* Header */}
       <div style={styles.header}>
         <div style={styles.titleGroup}>
-          <h3 style={styles.title}>GRIP MONITOR</h3>
-          <span style={styles.subtitle}>Monitor grip and slip in real-time</span>
+          <h3 style={styles.title}>{t.title}</h3>
+          <span style={styles.subtitle}>{t.desc}</span>
         </div>
         <div style={styles.liveBadge}>
           <span style={styles.liveDot} />
@@ -101,7 +107,7 @@ export const GripMonitor: React.FC<GripMonitorProps> = ({
           {/* Inner Value Text */}
           <div style={styles.gaugeLabelWrapper}>
             <span style={styles.gripValue} className="text-mono">{gripPct}%</span>
-            <span style={styles.gripLabel}>GRIP</span>
+            <span style={styles.gripLabel}>{t.gripLabel}</span>
           </div>
         </div>
 
@@ -110,7 +116,7 @@ export const GripMonitor: React.FC<GripMonitorProps> = ({
           {/* Front Slip */}
           <div style={styles.metricRow}>
             <div style={styles.metricLabelRow}>
-              <span style={styles.metricLabel}>FRONT SLIP</span>
+              <span style={styles.metricLabel}>{t.frontSlip}</span>
               <span style={styles.arrow} className="text-neon-cyan">→</span>
             </div>
             <div style={styles.barWrapper}>
@@ -131,7 +137,7 @@ export const GripMonitor: React.FC<GripMonitorProps> = ({
           {/* Rear Slip */}
           <div style={styles.metricRow}>
             <div style={styles.metricLabelRow}>
-              <span style={styles.metricLabel}>REAR SLIP</span>
+              <span style={styles.metricLabel}>{t.rearSlip}</span>
               <span style={styles.arrow} className="text-neon-cyan">→</span>
             </div>
             <div style={styles.barWrapper}>
@@ -152,7 +158,7 @@ export const GripMonitor: React.FC<GripMonitorProps> = ({
           {/* Wheelspin */}
           <div style={styles.metricRow}>
             <div style={styles.metricLabelRow}>
-              <span style={styles.metricLabel}>WHEELSPIN</span>
+              <span style={styles.metricLabel}>{t.wheelspin}</span>
               <span style={styles.arrow} className="text-neon-cyan">→</span>
             </div>
             <div style={styles.barWrapper}>
@@ -172,7 +178,7 @@ export const GripMonitor: React.FC<GripMonitorProps> = ({
 
           {/* Status Row */}
           <div style={styles.statusRow}>
-            <span style={styles.statusLabel}>STATUS</span>
+            <span style={styles.statusLabel}>{t.status}</span>
             <span style={{ ...styles.statusValue, color: statusColor, textShadow: `0 0 10px ${statusColor}aa` }} className="text-mono">
               {statusText}
             </span>

@@ -1,18 +1,24 @@
 import React, { useState, useEffect } from 'react';
+import { allLocales } from '../locales';
 
 interface EngineMetricsProps {
   power: number; // Watts
   torque: number; // Nm
   boost: number; // raw value
   useMetric: boolean;
+  lang: string;
 }
+
+
 
 export const EngineMetrics: React.FC<EngineMetricsProps> = ({
   power = 0,
   torque = 0,
   boost = 0,
   useMetric = true,
+  lang = 'en',
 }) => {
+  const t = allLocales[lang]?.engine || allLocales['en'].engine;
   const [peakPower, setPeakPower] = useState(0);
   const [peakTorque, setPeakTorque] = useState(0);
   const [peakBoost, setPeakBoost] = useState(0);
@@ -51,19 +57,19 @@ export const EngineMetrics: React.FC<EngineMetricsProps> = ({
 
   return (
     <div style={styles.container} className="glass-panel">
-      <h3 style={styles.title}>ENGINE PERFORMANCE & PEAKS</h3>
+      <h3 style={styles.title}>{t.title}</h3>
 
       <div style={styles.metricsList}>
         {/* Power / HP Row */}
         <div style={styles.metricRow}>
           <div style={styles.metricInfo}>
-            <span style={styles.label}>HORSEPOWER</span>
+            <span style={styles.label}>{t.horsepower}</span>
             <span className="text-neon-cyan text-mono" style={styles.liveValue}>
               {hp} <span style={styles.unit}>HP</span>
             </span>
           </div>
           <div style={styles.peakInfo}>
-            <span style={styles.peakLabel}>PEAK RECORD</span>
+            <span style={styles.peakLabel}>{t.peakRecord}</span>
             <span className="text-neon-pink text-mono" style={styles.peakValue}>
               {peakPower} <span style={styles.unit}>HP</span>
             </span>
@@ -73,13 +79,13 @@ export const EngineMetrics: React.FC<EngineMetricsProps> = ({
         {/* Torque Row */}
         <div style={styles.metricRow}>
           <div style={styles.metricInfo}>
-            <span style={styles.label}>TORQUE</span>
+            <span style={styles.label}>{t.torque}</span>
             <span className="text-neon-cyan text-mono" style={styles.liveValue}>
               {displayTorque} <span style={styles.unit}>{torqueUnit}</span>
             </span>
           </div>
           <div style={styles.peakInfo}>
-            <span style={styles.peakLabel}>PEAK RECORD</span>
+            <span style={styles.peakLabel}>{t.peakRecord}</span>
             <span className="text-neon-pink text-mono" style={styles.peakValue}>
               {peakTorque} <span style={styles.unit}>{torqueUnit}</span>
             </span>
@@ -89,13 +95,13 @@ export const EngineMetrics: React.FC<EngineMetricsProps> = ({
         {/* Boost Row */}
         <div style={styles.metricRow}>
           <div style={styles.metricInfo}>
-            <span style={styles.label}>BOOST PRESSURE</span>
+            <span style={styles.label}>{t.boostPressure}</span>
             <span className="text-neon-cyan text-mono" style={styles.liveValue}>
               {displayBoost} <span style={styles.unit}>PSI</span>
             </span>
           </div>
           <div style={styles.peakInfo}>
-            <span style={styles.peakLabel}>PEAK RECORD</span>
+            <span style={styles.peakLabel}>{t.peakRecord}</span>
             <span className="text-neon-pink text-mono" style={styles.peakValue}>
               {peakBoost} <span style={styles.unit}>PSI</span>
             </span>
@@ -104,7 +110,7 @@ export const EngineMetrics: React.FC<EngineMetricsProps> = ({
       </div>
 
       <button onClick={handleReset} style={styles.resetBtn}>
-        RESET PEAKS
+        {t.resetPeaks}
       </button>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { allLocales } from './locales';
 import { Tachometer } from './components/Tachometer';
 import { GForceMeter } from './components/GForceMeter';
 import { TireTelemetry } from './components/TireTelemetry';
@@ -189,8 +190,93 @@ const initialData: TelemetryData = {
   NormalizedAIBrakeDifference: 0,
 };
 
+const rawLanguages = [
+  { code: 'az', name: 'Azərbaycanca', flag: 'az' },
+  { code: 'sq', name: 'Shqip', flag: 'al' },
+  { code: 'en', name: 'English', flag: 'gb' },
+  { code: 'eu', name: 'Euskara', flag: 'es-pv' },
+  { code: 'be', name: 'Беларуская', flag: 'by' },
+  { code: 'bg', name: 'Български', flag: 'bg' },
+  { code: 'bs', name: 'Bosanski', flag: 'ba' },
+  { code: 'br', name: 'Brezhoneg', flag: 'fr' },
+  { code: 'cy', name: 'Cymraeg', flag: 'gb-wls' },
+  { code: 'hy', name: 'Հայերեն', flag: 'am' },
+  { code: 'gl', name: 'Galego', flag: 'es-ga' },
+  { code: 'el', name: 'Ελληνικά', flag: 'gr' },
+  { code: 'ka', name: 'ქართული', flag: 'ge' },
+  { code: 'da', name: 'Dansk', flag: 'dk' },
+  { code: 'et', name: 'Eesti', flag: 'ee' },
+  { code: 'ga', name: 'Gaeilge', flag: 'ie' },
+  { code: 'is', name: 'Íslenska', flag: 'is' },
+  { code: 'es', name: 'Español', flag: 'es' },
+  { code: 'it', name: 'Italiano', flag: 'it' },
+  { code: 'kk', name: 'Қазақша', flag: 'kz' },
+  { code: 'ca', name: 'Català', flag: 'es-ct' },
+  { code: 'lv', name: 'Latviešu', flag: 'lv' },
+  { code: 'lt', name: 'Lietuvių', flag: 'lt' },
+  { code: 'lb', name: 'Lëtzebuergesch', flag: 'lu' },
+  { code: 'mk', name: 'Македонски', flag: 'mk' },
+  { code: 'mt', name: 'Malti', flag: 'mt' },
+  { code: 'md', name: 'Moldovenească', flag: 'md' },
+  { code: 'nl', name: 'Nederlands', flag: 'nl' },
+  { code: 'de', name: 'Deutsch', flag: 'de' },
+  { code: 'no', name: 'Norsk', flag: 'no' },
+  { code: 'pl', name: 'Polski', flag: 'pl' },
+  { code: 'pt', name: 'Português', flag: 'pt' },
+  { code: 'rm', name: 'Rumantsch', flag: 'ch' },
+  { code: 'ro', name: 'Română', flag: 'ro' },
+  { code: 'sr', name: 'Srpski', flag: 'rs' },
+  { code: 'sk', name: 'Slovenčina', flag: 'sk' },
+  { code: 'sl', name: 'Slovenščina', flag: 'si' },
+  { code: 'tr', name: 'Türkçe', flag: 'tr' },
+  { code: 'hu', name: 'Magyar', flag: 'hu' },
+  { code: 'uk', name: 'Українська', flag: 'ua' },
+  { code: 'fo', name: 'Føroyskt', flag: 'fo' },
+  { code: 'fi', name: 'Suomi', flag: 'fi' },
+  { code: 'fr', name: 'Français', flag: 'fr' },
+  { code: 'hr', name: 'Hrvatski', flag: 'hr' },
+  { code: 'cs', name: 'Čeština', flag: 'cz' },
+  { code: 'sv', name: 'Svenska', flag: 'se' },
+  { code: 'gd', name: 'Gàidhlig', flag: 'gb-sct' }
+];
+
+const languages = [
+  rawLanguages.find(l => l.code === 'en')!,
+  ...rawLanguages.filter(l => l.code !== 'en').sort((a, b) => a.code.localeCompare(b.code))
+];
+
 function App() {
   const [data, setData] = useState<TelemetryData>(initialData);
+  const [lang, setLang] = useState<string>(() => {
+    const saved = localStorage.getItem('forza_language');
+    if (saved === 'ua' || saved === 'uk') return 'uk';
+    if (saved && languages.some(l => l.code === saved)) {
+      return saved;
+    }
+    return 'en';
+  });
+
+  const handleLangChange = (newLang: string) => {
+    setLang(newLang);
+    localStorage.setItem('forza_language', newLang);
+  };
+
+  const t = allLocales[lang]?.app || allLocales['en'].app;
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'waiting' | 'mock'>('waiting');
   const [backendDsConnected, setBackendDsConnected] = useState<boolean>(false);
 
@@ -224,6 +310,7 @@ function App() {
       enableGearShift: true,
       gearShiftDurationMs: 120,
       gearShiftStrength: 0.8,
+      r2Mode: 'full',
     };
     try {
       const saved = localStorage.getItem('forza_dualsense_settings');
@@ -590,9 +677,9 @@ function App() {
           {/* Connection badge */}
           <div className={`status-indicator ${connectionStatus}`}>
             <span className={`status-dot active`} />
-            {connectionStatus === 'connected' && `LIVE (${packetRate} Hz)`}
-            {connectionStatus === 'waiting' && 'WAITING FOR GAME...'}
-            {connectionStatus === 'mock' && 'MOCK TELEMETRY'}
+            {connectionStatus === 'connected' && `${t.live} (${packetRate} Hz)`}
+            {connectionStatus === 'waiting' && t.waitingForGame}
+            {connectionStatus === 'mock' && t.mockTelemetry}
           </div>
 
           {/* DualSense backend status indicator */}
@@ -601,18 +688,18 @@ function App() {
             style={{ border: '1px solid rgba(255, 255, 255, 0.1)' }}
           >
             <span className={`status-dot ${backendDsConnected ? 'active' : ''}`} />
-            {backendDsConnected ? 'DUALSENSE: CONNECTED' : 'DUALSENSE: NOT DETECTED'}
+            {backendDsConnected ? t.dsConnected : t.dsNotDetected}
           </div>
         </div>
 
-        {/* Tab options */}
-        <ul className="tab-list">
+        {/* Tab options with language selector */}
+        <ul className="tab-list" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <li>
             <button
               onClick={() => setActiveTab('dashboard')}
               className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
             >
-              DASHBOARD
+              {t.dashboard}
             </button>
           </li>
 
@@ -621,7 +708,7 @@ function App() {
               onClick={() => setActiveTab('map')}
               className={`tab-btn ${activeTab === 'map' ? 'active' : ''}`}
             >
-              TRACK MAP
+              {t.trackMap}
             </button>
           </li>
           <li>
@@ -629,7 +716,7 @@ function App() {
               onClick={() => setActiveTab('stats')}
               className={`tab-btn ${activeTab === 'stats' ? 'active' : ''}`}
             >
-              PERFORMANCE & LAPS
+              {t.performanceLaps}
             </button>
           </li>
           <li>
@@ -637,8 +724,60 @@ function App() {
               onClick={() => setActiveTab('settings')}
               className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
             >
-              SETTINGS
+              {t.settings}
             </button>
+          </li>
+          {/* Language select dropdown to the right of Settings tab */}
+          <li style={{ display: 'flex', alignItems: 'center', marginLeft: '5px' }}>
+            <div ref={dropdownRef} className="lang-dropdown-container">
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="lang-dropdown-trigger"
+                type="button"
+              >
+                {(() => {
+                  const currentLangObj = languages.find(l => l.code === lang) || { code: 'en', name: 'Англійська', flag: 'gb' };
+                  return (
+                    <>
+                      <img
+                        src={`https://flagcdn.com/w40/${currentLangObj.flag}.png`}
+                        alt={currentLangObj.name}
+                        className="lang-dropdown-flag"
+                      />
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                        {currentLangObj.code}
+                      </span>
+                      <span style={{ fontSize: '0.6rem', opacity: 0.7, marginLeft: '4px', display: 'inline-block', width: '10px', textAlign: 'center' }}>
+                        {dropdownOpen ? '▲' : '▼'}
+                      </span>
+                    </>
+                  );
+                })()}
+              </button>
+              {dropdownOpen && (
+                <ul className="lang-dropdown-menu">
+                  {languages.map((l) => (
+                    <li key={l.code} style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                      <button
+                        onClick={() => {
+                          handleLangChange(l.code);
+                          setDropdownOpen(false);
+                        }}
+                        className={`lang-dropdown-item ${lang === l.code ? 'active' : ''}`}
+                        type="button"
+                      >
+                        <img
+                          src={`https://flagcdn.com/w40/${l.flag}.png`}
+                          alt={l.name}
+                          className="lang-dropdown-flag"
+                        />
+                        <span style={{ whiteSpace: 'nowrap' }}>{l.name}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </li>
         </ul>
 
@@ -646,7 +785,7 @@ function App() {
         <div className="controls-group">
           {/* Unit Toggle */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>IMPERIAL</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{t.imperial}</span>
             <label className="control-toggle">
               <input
                 type="checkbox"
@@ -655,12 +794,12 @@ function App() {
               />
               <span className="toggle-switch" />
             </label>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>METRIC</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{t.metric}</span>
           </div>
 
           {/* Mock Mode Toggle */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '15px' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>MOCK MODE</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{t.mockMode}</span>
             <label className="control-toggle">
               <input
                 type="checkbox"
@@ -696,9 +835,9 @@ function App() {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexGrow: 1, minWidth: 0 }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '1px', flexShrink: 0 }}>VEHICLE</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '1px', flexShrink: 0 }}>{t.vehicle}</span>
                 <span className="text-neon-cyan text-mono" style={{ fontSize: '1.1rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {getCarName(data.CarOrdinal) ? `${getCarName(data.CarOrdinal)} (ID: ${data.CarOrdinal})` : data.CarOrdinal ? `Unknown Car (ID: ${data.CarOrdinal})` : 'No Car Loaded'}
+                  {getCarName(data.CarOrdinal) ? `${getCarName(data.CarOrdinal)} (ID: ${data.CarOrdinal})` : data.CarOrdinal ? `${t.unknownCar} (ID: ${data.CarOrdinal})` : t.noCarLoaded}
                 </span>
               </div>
             </div>
@@ -723,13 +862,13 @@ function App() {
             {/* Controls and Pedals Inputs */}
             <div className="col-4 glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', justifyContent: 'center' }}>
               <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', letterSpacing: '1.5px', fontWeight: 600, borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '8px', marginBottom: '5px' }}>
-                PEDAL & WHEEL INPUTS
+                {t.pedalWheelInputs}
               </h3>
               
               {/* Accel Throttle Bar */}
               <div className="pedal-bar-container">
                 <div className="pedal-bar-label">
-                  <span>THROTTLE</span>
+                  <span>{t.throttle}</span>
                   <span className="text-neon-green text-mono">{Math.round((data.Accel / 255) * 100)}%</span>
                 </div>
                 <div className="pedal-bar-bg">
@@ -740,7 +879,7 @@ function App() {
               {/* Brake Bar */}
               <div className="pedal-bar-container">
                 <div className="pedal-bar-label">
-                  <span>BRAKE</span>
+                  <span>{t.brake}</span>
                   <span className="text-neon-pink text-mono">{Math.round((data.Brake / 255) * 100)}%</span>
                 </div>
                 <div className="pedal-bar-bg">
@@ -751,7 +890,7 @@ function App() {
               {/* Clutch Bar */}
               <div className="pedal-bar-container">
                 <div className="pedal-bar-label">
-                  <span>CLUTCH</span>
+                  <span>{t.clutch}</span>
                   <span className="text-neon-cyan text-mono">{Math.round((data.Clutch / 255) * 100)}%</span>
                 </div>
                 <div className="pedal-bar-bg">
@@ -762,7 +901,7 @@ function App() {
               {/* Handbrake Bar */}
               <div className="pedal-bar-container">
                 <div className="pedal-bar-label">
-                  <span>HANDBRAKE</span>
+                  <span>{t.handbrake}</span>
                   <span style={{ color: 'var(--accent-orange)' }} className="text-mono">{Math.round((data.HandBrake / 255) * 100)}%</span>
                 </div>
                 <div className="pedal-bar-bg">
@@ -773,9 +912,9 @@ function App() {
               {/* Steering scale bar */}
               <div className="steer-indicator-container" style={{ marginTop: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                  <span>STEERING WHEEL</span>
+                  <span>{t.steeringWheel}</span>
                   <span className="text-neon-cyan text-mono">
-                    {data.Steer > 0 ? `R ${Math.round((data.Steer/127)*100)}%` : data.Steer < 0 ? `L ${Math.round(Math.abs(data.Steer/127)*100)}%` : 'CENTERED'}
+                    {data.Steer > 0 ? `R ${Math.round((data.Steer/127)*100)}%` : data.Steer < 0 ? `L ${Math.round(Math.abs(data.Steer/127)*100)}%` : t.centered}
                   </span>
                 </div>
                 <div className="steer-track">
@@ -801,6 +940,7 @@ function App() {
                 suspRL={data.NormalizedSuspensionTravelRearLeft}
                 suspRR={data.NormalizedSuspensionTravelRearRight}
                 useMetric={useMetric}
+                lang={lang}
               />
             </div>
 
@@ -810,6 +950,7 @@ function App() {
                 torque={data.Torque}
                 boost={data.Boost}
                 useMetric={useMetric}
+                lang={lang}
               />
             </div>
 
@@ -819,6 +960,7 @@ function App() {
                 slipFR={data.TireCombinedSlipFrontRight}
                 slipRL={data.TireCombinedSlipRearLeft}
                 slipRR={data.TireCombinedSlipRearRight}
+                lang={lang}
               />
             </div>
           </>
@@ -831,6 +973,7 @@ function App() {
               posZ={data.PositionZ}
               yaw={data.Yaw}
               isRaceOn={data.IsRaceOn}
+              lang={lang}
             />
           </div>
         )}
@@ -853,6 +996,7 @@ function App() {
               carPerformanceIndex={data.CarPerformanceIndex}
               drivetrainType={data.DrivetrainType}
               useMetric={useMetric}
+              lang={lang}
             />
           </div>
         )}
@@ -863,6 +1007,7 @@ function App() {
             onSettingsChange={updateSettings}
             carCount={carCount}
             onUpdateCarDb={handleUpdateCarDb}
+            lang={lang}
           />
         )}
       </main>

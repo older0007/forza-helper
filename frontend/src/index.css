@@ -17,6 +17,7 @@
   --glow-red: 0 0 12px rgba(255, 59, 48, 0.5);
   --font-display: 'Outfit', sans-serif;
   --font-mono: 'Share Tech Mono', monospace;
+  scrollbar-gutter: stable;
 }
 
 * {
@@ -365,3 +366,108 @@ input[type="checkbox"]:checked + .toggle-switch::after {
 .settings-slider::-moz-range-thumb:hover {
   transform: scale(1.2);
 }
+
+/* Custom Language Dropdown */
+.lang-dropdown-container {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  user-select: none;
+}
+
+.lang-dropdown-trigger {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #ffffff;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  outline: none;
+  transition: all 0.2s ease;
+  font-family: var(--font-display);
+}
+
+.lang-dropdown-trigger:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.lang-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  background: #121621;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  max-height: 280px;
+  overflow-y: auto;
+  width: 260px;
+  z-index: 1000;
+  padding: 6px 0;
+  list-style: none;
+  margin: 0;
+}
+
+/* Scrollbar styling for lang dropdown */
+.lang-dropdown-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.lang-dropdown-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lang-dropdown-menu::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+.lang-dropdown-menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.lang-dropdown-item {
+  background: none;
+  border: none;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font-display);
+  text-align: left;
+}
+
+.lang-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+}
+
+.lang-dropdown-item.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.lang-dropdown-flag {
+  width: 20px;
+  height: 14px;
+  object-fit: cover;
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  display: inline-block;
+  vertical-align: middle;
+}
+
+

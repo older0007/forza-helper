@@ -1,4 +1,5 @@
 import React from 'react';
+import { allLocales } from '../locales';
 
 interface TireTelemetryProps {
   // Temperatures
@@ -18,14 +19,19 @@ interface TireTelemetryProps {
   suspRR: number;
   
   useMetric: boolean;
+  lang: string;
 }
+
+
 
 export const TireTelemetry: React.FC<TireTelemetryProps> = ({
   tempFL = 60, tempFR = 60, tempRL = 60, tempRR = 60,
   slipFL = 0, slipFR = 0, slipRL = 0, slipRR = 0,
   suspFL = 0.5, suspFR = 0.5, suspRL = 0.5, suspRR = 0.5,
-  useMetric = true
+  useMetric = true,
+  lang = 'en'
 }) => {
+  const t = allLocales[lang]?.tires || allLocales['en'].tires;
 
   // Helper to format temperature
   const formatTemp = (tempF: number) => {
@@ -66,7 +72,7 @@ export const TireTelemetry: React.FC<TireTelemetryProps> = ({
 
   return (
     <div style={styles.container} className="glass-panel">
-      <h3 style={styles.title}>TIRES & SUSPENSION</h3>
+      <h3 style={styles.title}>{t.title}</h3>
       
       <div style={styles.chassisWrapper}>
         {/* Stylized chassis shape */}
@@ -99,7 +105,7 @@ export const TireTelemetry: React.FC<TireTelemetryProps> = ({
               <div style={styles.wheelStats} className="text-mono">
                 {/* Traction/Slip */}
                 <div style={styles.statLine}>
-                  <span>SLIP:</span>
+                  <span>{t.slip}</span>
                   <span style={{ color: slipColor }}>{wheel.slip.toFixed(2)}</span>
                 </div>
                 

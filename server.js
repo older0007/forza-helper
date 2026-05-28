@@ -1,6 +1,45 @@
+const path = require('path');
+const os = require('os');
+
+// Force pkg to load node-hid native addon from the physical disk next to the exe
+try {
+  const Module = require('module');
+  const originalLoad = Module._load;
+  
+  Module._load = function (request, parent, isMain) {
+    if (request === 'pkg-prebuilds/bindings' || request.endsWith('pkg-prebuilds/bindings') || request.endsWith('pkg-prebuilds/bindings.js')) {
+      return function (basePath, options) {
+        if (process.pkg) {
+          const exeDir = path.dirname(process.execPath);
+          const platform = os.platform();
+          const arch = os.arch();
+          const name = options.name;
+          const napi_ver = (options.napi_versions && options.napi_versions[0]) || 4;
+          const prebuildName = `${name}-${platform}-${arch}/node-napi-v${napi_ver}.node`;
+          const physicalPath = path.join(exeDir, 'prebuilds', prebuildName);
+          
+          console.log(`[DualSense Bridge] Intercepted require. Loading native addon: ${physicalPath}`);
+          try {
+            return originalLoad(physicalPath, parent, isMain);
+          } catch (err) {
+            console.error(`[DualSense Bridge] Failed to load native addon:`, err);
+            throw err;
+          }
+        }
+        const bindingsLoader = originalLoad(request, parent, isMain);
+        return bindingsLoader(basePath, options);
+      };
+    }
+    return originalLoad(request, parent, isMain);
+  };
+} catch (e) {
+  console.error('[DualSense Bridge] Failed to inject Module._load hook:', e);
+}
+
 const { WebSocketServer } = require('ws');
 const ForzaServer = require('forza-horizon').default;
 const { DualsenseManager, TriggerEffect } = require('dualsense-ts');
+const nodeHid = require('node-hid');
 
 // Get ports from CLI arguments or default values
 const udpPort = parseInt(process.argv[2], 10) || 5607;
@@ -224,7 +263,6 @@ const updateDualSenseTriggers = (ds, telemetry) => {
 // 2. Initialize HTTP Server to serve static dashboard assets
 const http = require('http');
 const fs = require('fs');
-const path = require('path');
 const { exec } = require('child_process');
 const SysTray = require('systray2').default;
 

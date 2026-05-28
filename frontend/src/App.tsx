@@ -212,19 +212,28 @@ function App() {
   };
 
   const [settings, setSettings] = useState<TriggerSettings>(() => {
+    const defaults: TriggerSettings = {
+      absStrength: 1.0,
+      tcStrength: 1.0,
+      resistanceStrength: 1.0,
+      absMinSpeedKmh: 15,
+      absFreq: 24,
+      enableRevLimiter: true,
+      revLimitRatio: 0.97,
+      revLimitFreq: 30,
+      enableGearShift: true,
+      gearShiftDurationMs: 120,
+      gearShiftStrength: 0.8,
+    };
     try {
       const saved = localStorage.getItem('forza_dualsense_settings');
       if (saved) {
-        return JSON.parse(saved);
+        return { ...defaults, ...JSON.parse(saved) };
       }
     } catch (e) {
       // Ignore
     }
-    return {
-      absStrength: 1.0,
-      tcStrength: 1.0,
-      resistanceStrength: 1.0,
-    };
+    return defaults;
   });
 
   const settingsRef = useRef(settings);
@@ -262,7 +271,8 @@ function App() {
     setConnectionStatus('waiting');
     
     // Connect to Node.js backend WebSocket server
-    const wsUrl = `ws://${window.location.hostname}:3002`;
+    const wsPort = window.location.port === '3000' ? '3002' : window.location.port || '3002';
+    const wsUrl = `ws://${window.location.hostname}:${wsPort}`;
     console.log(`Connecting to WebSocket: ${wsUrl}`);
     const socket = new WebSocket(wsUrl);
     socketRef.current = socket;

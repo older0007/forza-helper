@@ -2,11 +2,23 @@
   "name": "forza",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
+  "bin": "server.js",
   "scripts": {
     "start": "node server.js",
     "client": "npm run dev --prefix frontend",
-    "dev": "concurrently \"npm run start\" \"npm run client\""
+    "dev": "concurrently \"npm run start\" \"npm run client\"",
+    "build:exe": "npm run build --prefix frontend && pkg . --output dist/forza-companion.exe && node scripts/postbuild.js"
+  },
+  "pkg": {
+    "assets": [
+      "frontend/dist/**/*",
+      "node_modules/systray2/traybin/**/*",
+      "logo.ico"
+    ],
+    "targets": [
+      "node18-win-x64"
+    ]
   },
   "keywords": [],
   "author": "",
@@ -14,11 +26,13 @@
   "type": "commonjs",
   "devDependencies": {
     "concurrently": "^9.2.1",
-    "forza-horizon": "^1.0.9"
+    "forza-horizon": "^1.0.9",
+    "pkg": "^5.8.1"
   },
   "dependencies": {
     "dualsense-ts": "^6.15.0",
     "node-hid": "^3.3.0",
+    "systray2": "^2.1.4",
     "ws": "^8.21.0"
   }
 }

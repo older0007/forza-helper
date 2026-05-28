@@ -4,6 +4,17 @@ export interface TriggerSettings {
   absStrength: number;
   tcStrength: number;
   resistanceStrength: number;
+  
+  absMinSpeedKmh: number;
+  absFreq: number;
+  
+  enableRevLimiter: boolean;
+  revLimitRatio: number;
+  revLimitFreq: number;
+  
+  enableGearShift: boolean;
+  gearShiftDurationMs: number;
+  gearShiftStrength: number;
 }
 
 interface SettingsPanelProps {
@@ -43,7 +54,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     }
   };
 
-  const handleSliderChange = (key: keyof TriggerSettings, val: number) => {
+  const handleSettingChange = <K extends keyof TriggerSettings>(key: K, val: TriggerSettings[K]) => {
     onSettingsChange({
       ...settings,
       [key]: val,
@@ -54,9 +65,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     <div style={styles.container} className="col-12 glass-panel">
       <h2 style={styles.heading}>DUALSENSE ADAPTIVE TRIGGERS SETTINGS</h2>
       <p style={styles.description}>
-        Adjust the physical force feedback intensity for your PS5 controller. Changes are saved automatically and synchronized to the server.
+        Adjust the physical force feedback intensity and advanced trigger physics for your PS5 controller. Changes are saved automatically.
       </p>
 
+      {/* SECTION 1: GENERAL INTENSITY */}
+      <h3 style={styles.sectionHeading}>General Intensity & Database</h3>
       <div style={styles.settingsGrid}>
         {/* ABS Intensity Slider */}
         <div style={styles.card}>
@@ -72,7 +85,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             max="1"
             step="0.05"
             value={settings.absStrength}
-            onChange={(e) => handleSliderChange('absStrength', parseFloat(e.target.value))}
+            onChange={(e) => handleSettingChange('absStrength', parseFloat(e.target.value))}
             className="settings-slider"
           />
           <p style={styles.hint}>
@@ -94,7 +107,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             max="1"
             step="0.05"
             value={settings.tcStrength}
-            onChange={(e) => handleSliderChange('tcStrength', parseFloat(e.target.value))}
+            onChange={(e) => handleSettingChange('tcStrength', parseFloat(e.target.value))}
             className="settings-slider"
           />
           <p style={styles.hint}>
@@ -116,7 +129,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             max="1"
             step="0.05"
             value={settings.resistanceStrength}
-            onChange={(e) => handleSliderChange('resistanceStrength', parseFloat(e.target.value))}
+            onChange={(e) => handleSettingChange('resistanceStrength', parseFloat(e.target.value))}
             className="settings-slider"
           />
           <p style={styles.hint}>
@@ -175,6 +188,174 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </p>
         </div>
       </div>
+
+      {/* SECTION 2: ADVANCED ABS */}
+      <h3 style={styles.sectionHeading}>Advanced ABS Settings (L2)</h3>
+      <div style={styles.settingsGrid}>
+        {/* ABS Min Speed */}
+        <div style={styles.card}>
+          <div style={styles.labelRow}>
+            <span style={styles.label}>ABS Minimum Speed</span>
+            <span className="text-neon-pink text-mono" style={styles.value}>
+              {settings.absMinSpeedKmh} km/h
+            </span>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="60"
+            step="5"
+            value={settings.absMinSpeedKmh}
+            onChange={(e) => handleSettingChange('absMinSpeedKmh', parseInt(e.target.value))}
+            className="settings-slider"
+          />
+          <p style={styles.hint}>
+            Disables L2 ABS trigger rumble at low speeds to prevent vibrations while parking or starting.
+          </p>
+        </div>
+
+        {/* ABS Freq */}
+        <div style={styles.card}>
+          <div style={styles.labelRow}>
+            <span style={styles.label}>ABS Vibration Frequency</span>
+            <span className="text-neon-pink text-mono" style={styles.value}>
+              {settings.absFreq} Hz
+            </span>
+          </div>
+          <input
+            type="range"
+            min="10"
+            max="40"
+            step="2"
+            value={settings.absFreq}
+            onChange={(e) => handleSettingChange('absFreq', parseInt(e.target.value))}
+            className="settings-slider"
+          />
+          <p style={styles.hint}>
+            The speed of L2 brake trigger pulsations when tires slip. Higher values feel like finer ABS vibration.
+          </p>
+        </div>
+      </div>
+
+      {/* SECTION 3: ENGINE & GEAR SHIFTS */}
+      <h3 style={styles.sectionHeading}>Engine Limiter & Gear Shift Effects (R2)</h3>
+      <div style={styles.settingsGrid}>
+        {/* Rev Limiter Card */}
+        <div style={styles.card}>
+          <div style={{ ...styles.labelRow, marginBottom: '5px' }}>
+            <span style={styles.label}>Rev Limiter Vibration (R2)</span>
+            <label className="control-toggle">
+              <input
+                type="checkbox"
+                checked={settings.enableRevLimiter}
+                onChange={(e) => handleSettingChange('enableRevLimiter', e.target.checked)}
+              />
+              <span className="toggle-switch" />
+            </label>
+          </div>
+          
+          {settings.enableRevLimiter && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
+              <div>
+                <div style={styles.labelRow}>
+                  <span style={{ ...styles.label, fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>Activation Threshold</span>
+                  <span className="text-neon-pink text-mono" style={{ ...styles.value, fontSize: '0.95rem' }}>
+                    {Math.round(settings.revLimitRatio * 100)}% RPM
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.90"
+                  max="0.99"
+                  step="0.01"
+                  value={settings.revLimitRatio}
+                  onChange={(e) => handleSettingChange('revLimitRatio', parseFloat(e.target.value))}
+                  className="settings-slider"
+                />
+              </div>
+
+              <div>
+                <div style={styles.labelRow}>
+                  <span style={{ ...styles.label, fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>Vibration Frequency</span>
+                  <span className="text-neon-pink text-mono" style={{ ...styles.value, fontSize: '0.95rem' }}>
+                    {settings.revLimitFreq} Hz
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="15"
+                  max="45"
+                  step="2"
+                  value={settings.revLimitFreq}
+                  onChange={(e) => handleSettingChange('revLimitFreq', parseInt(e.target.value))}
+                  className="settings-slider"
+                />
+              </div>
+            </div>
+          )}
+          <p style={styles.hint}>
+            Vibrates the R2 accelerator trigger when engine hits the redline, warning you to shift gears.
+          </p>
+        </div>
+
+        {/* Gear Shift Card */}
+        <div style={styles.card}>
+          <div style={{ ...styles.labelRow, marginBottom: '5px' }}>
+            <span style={styles.label}>Gear Shift Thump (L2/R2)</span>
+            <label className="control-toggle">
+              <input
+                type="checkbox"
+                checked={settings.enableGearShift}
+                onChange={(e) => handleSettingChange('enableGearShift', e.target.checked)}
+              />
+              <span className="toggle-switch" />
+            </label>
+          </div>
+          
+          {settings.enableGearShift && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
+              <div>
+                <div style={styles.labelRow}>
+                  <span style={{ ...styles.label, fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>Thump Duration</span>
+                  <span className="text-neon-pink text-mono" style={{ ...styles.value, fontSize: '0.95rem' }}>
+                    {settings.gearShiftDurationMs} ms
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="50"
+                  max="300"
+                  step="10"
+                  value={settings.gearShiftDurationMs}
+                  onChange={(e) => handleSettingChange('gearShiftDurationMs', parseInt(e.target.value))}
+                  className="settings-slider"
+                />
+              </div>
+
+              <div>
+                <div style={styles.labelRow}>
+                  <span style={{ ...styles.label, fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>Thump Intensity</span>
+                  <span className="text-neon-pink text-mono" style={{ ...styles.value, fontSize: '0.95rem' }}>
+                    {Math.round(settings.gearShiftStrength * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="1.0"
+                  step="0.05"
+                  value={settings.gearShiftStrength}
+                  onChange={(e) => handleSettingChange('gearShiftStrength', parseFloat(e.target.value))}
+                  className="settings-slider"
+                />
+              </div>
+            </div>
+          )}
+          <p style={styles.hint}>
+            Delivers a physical pulse to the pedals when the car changes gears to simulate clutch/shifting kickback.
+          </p>
+        </div>
+      </div>
     </div>
   );
 };
@@ -201,6 +382,17 @@ const styles = {
     color: 'var(--text-secondary)',
     lineHeight: '1.4',
     marginBottom: '20px',
+  },
+  sectionHeading: {
+    fontSize: '1rem',
+    fontWeight: 700,
+    letterSpacing: '1.5px',
+    color: 'var(--accent-cyan)',
+    textTransform: 'uppercase' as const,
+    marginTop: '25px',
+    marginBottom: '10px',
+    borderLeft: '3px solid var(--accent-cyan)',
+    paddingLeft: '10px',
   },
   settingsGrid: {
     display: 'grid',

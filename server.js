@@ -1,33 +1,98 @@
 const path = require('path');
 const os = require('os');
+const fs = require('fs');
 
-// Force pkg to load node-hid native addon from the physical disk next to the exe
+// ---------------------------------------------------------------------------
+// Self-contained native addon extraction & loading for pkg-packaged builds.
+// pkg cannot bundle native .node addons inside the snapshot virtual FS; they
+// are included as assets but still need to live on the real filesystem when
+// loaded via process.dlopen(). This block:
+//   1) Copies the .node file from the snapshot asset to a physical directory
+//      next to the exe (or %TEMP% as a fallback) — only once per version.
+//   2) Hooks Module._load so that any require("pkg-prebuilds/bindings") call
+//      returns the physically-extracted .node instead of failing.
+// ---------------------------------------------------------------------------
+let _extractedNativeAddonPath = null;
+
+if (process.pkg) {
+  try {
+    const platform = os.platform();
+    const arch = os.arch();
+    const addonName = 'HID';
+    const napiVer = 4;
+    const prebuildRelative = `${addonName}-${platform}-${arch}/node-napi-v${napiVer}.node`;
+
+    // Source inside the pkg snapshot (virtual FS, readable by fs.readFileSync)
+    const snapshotSource = path.join(
+      path.dirname(process.argv[1] || __dirname),
+      'node_modules', 'node-hid', 'prebuilds', prebuildRelative
+    );
+
+    // --- Determine a writable destination on the real filesystem ---
+    // Prefer a folder next to the exe so the file persists between runs.
+    // Fall back to %TEMP% if the exe directory is read-only (e.g. Program Files).
+    function pickDestDir() {
+      const candidates = [
+        path.join(path.dirname(process.execPath), '.forza-native'),
+        path.join(os.tmpdir(), 'forza-companion-native'),
+      ];
+      for (const dir of candidates) {
+        try {
+          fs.mkdirSync(path.join(dir, `${addonName}-${platform}-${arch}`), { recursive: true });
+          // Quick write test
+          const testFile = path.join(dir, '.write-test');
+          fs.writeFileSync(testFile, '');
+          fs.unlinkSync(testFile);
+          return dir;
+        } catch { /* try next */ }
+      }
+      throw new Error('No writable directory found for native addon extraction');
+    }
+
+    const destDir = pickDestDir();
+    const destPath = path.join(destDir, prebuildRelative);
+
+    // Only copy if the file doesn't exist yet or has a different size
+    let needsCopy = true;
+    try {
+      const srcStat = fs.statSync(snapshotSource);
+      const dstStat = fs.statSync(destPath);
+      if (dstStat.size === srcStat.size) {
+        needsCopy = false;
+      }
+    } catch { /* dest doesn't exist or snapshot unreadable — will copy */ }
+
+    if (needsCopy) {
+      const addonDir = path.dirname(destPath);
+      fs.mkdirSync(addonDir, { recursive: true });
+      fs.copyFileSync(snapshotSource, destPath);
+      console.log(`[DualSense Bridge] Extracted native addon → ${destPath}`);
+    } else {
+      console.log(`[DualSense Bridge] Native addon already on disk → ${destPath}`);
+    }
+
+    _extractedNativeAddonPath = destPath;
+  } catch (extractErr) {
+    console.error('[DualSense Bridge] Failed to extract native addon from snapshot:', extractErr);
+  }
+}
+
+// Hook Module._load so node-hid's "pkg-prebuilds/bindings" call returns
+// the extracted physical .node file instead of looking in the snapshot.
 try {
   const Module = require('module');
   const originalLoad = Module._load;
-  
+
   Module._load = function (request, parent, isMain) {
-    if (request === 'pkg-prebuilds/bindings' || request.endsWith('pkg-prebuilds/bindings') || request.endsWith('pkg-prebuilds/bindings.js')) {
-      return function (basePath, options) {
-        if (process.pkg) {
-          const exeDir = path.dirname(process.execPath);
-          const platform = os.platform();
-          const arch = os.arch();
-          const name = options.name;
-          const napi_ver = (options.napi_versions && options.napi_versions[0]) || 4;
-          const prebuildName = `${name}-${platform}-${arch}/node-napi-v${napi_ver}.node`;
-          const physicalPath = path.join(exeDir, 'prebuilds', prebuildName);
-          
-          console.log(`[DualSense Bridge] Intercepted require. Loading native addon: ${physicalPath}`);
-          try {
-            return originalLoad(physicalPath, parent, isMain);
-          } catch (err) {
-            console.error(`[DualSense Bridge] Failed to load native addon:`, err);
-            throw err;
-          }
-        }
-        const bindingsLoader = originalLoad(request, parent, isMain);
-        return bindingsLoader(basePath, options);
+    if (
+      process.pkg && _extractedNativeAddonPath &&
+      (request === 'pkg-prebuilds/bindings' ||
+       request.endsWith('pkg-prebuilds/bindings') ||
+       request.endsWith('pkg-prebuilds/bindings.js'))
+    ) {
+      return function (_basePath, _options) {
+        console.log(`[DualSense Bridge] Loading native addon: ${_extractedNativeAddonPath}`);
+        return originalLoad(_extractedNativeAddonPath, parent, isMain);
       };
     }
     return originalLoad(request, parent, isMain);
@@ -258,7 +323,6 @@ const updateDualSenseTriggers = (ds, telemetry) => {
 
 // 2. Initialize HTTP Server to serve static dashboard assets
 const http = require('http');
-const fs = require('fs');
 const { exec } = require('child_process');
 const SysTray = require('systray2').default;
 
